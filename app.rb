@@ -74,7 +74,7 @@ end
 require "minitest/autorun"
 
 class BugTest < Minitest::Test
-  def test_eager_load
+  def test_join
     tenant = Tenant.create!
     group = Group.create!(tenant: tenant)
 
@@ -88,6 +88,6 @@ class BugTest < Minitest::Test
       }
     )
 
-    assert_equal group.id, Group.eager_load(users: { profile_attachment: :blob }).find(group.id).id
+    assert_equal group.id, Group.joins(users: { profile_attachment: :blob }).find(group.id).id
   end
 end
