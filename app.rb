@@ -8,42 +8,61 @@ gemfile(true) do
   git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
   # Activate the gem you are reporting the issue against.
-  gem "activerecord", "6.0.3"
+  gem "rails", "6.0.3"
   gem "sqlite3"
 end
 
-require "active_record"
-require "minitest/autorun"
-require "logger"
+require "active_record/railtie"
+require "active_storage/engine"
+require "tmpdir"
 
-# This connection will do for database-independent bug reports.
-ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
-ActiveRecord::Base.logger = Logger.new(STDOUT)
+class TestApp < Rails::Application
+  config.root = __dir__
+  config.hosts << "example.org"
+  config.eager_load = false
+  config.session_store :cookie_store, key: "cookie_store_key"
+  secrets.secret_key_base = "secret_key_base"
+
+  config.logger = Logger.new($stdout)
+  Rails.logger  = config.logger
+
+  config.active_storage.service = :local
+  config.active_storage.service_configurations = {
+    local: {
+      root: Dir.tmpdir,
+      service: "Disk"
+    }
+  }
+end
+
+ENV["DATABASE_URL"] = "sqlite3::memory:"
+
+Rails.application.initialize!
+
+require ActiveStorage::Engine.root.join("db/migrate/20170806125915_create_active_storage_tables.rb").to_s
 
 ActiveRecord::Schema.define do
-  create_table :posts, force: true do |t|
-  end
+  CreateActiveStorageTables.new.change
 
-  create_table :comments, force: true do |t|
-    t.integer :post_id
-  end
+  create_table :users, force: true
 end
 
-class Post < ActiveRecord::Base
-  has_many :comments
+class User < ActiveRecord::Base
+  has_one_attached :profile
 end
 
-class Comment < ActiveRecord::Base
-  belongs_to :post
-end
+require "minitest/autorun"
 
 class BugTest < Minitest::Test
-  def test_association_stuff
-    post = Post.create!
-    post.comments << Comment.create!
+  def test_upload_and_download
+    user = User.create!(
+      profile: {
+        content_type: "text/plain",
+        filename: "dummy.txt",
+        io: ::StringIO.new("dummy"),
+      }
+    )
 
-    assert_equal 1, post.comments.count
-    assert_equal 1, Comment.count
-    assert_equal post.id, Comment.first.post.id
+    assert_equal "dummy", user.profile.download
   end
 end
