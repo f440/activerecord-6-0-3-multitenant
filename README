@@ -1,0 +1,25 @@
+Test for ActiveStorage x Activerecord::MultiTenant
+
+## Rails 6.0.2.2
+
+```
+
+$ RAILS_VERSION=6.0.2 ruby app.rb
+
+...
+
+1 runs, 1 assertions, 0 failures, 0 errors, 0 skips
+```
+
+## Rails 6.0.3
+
+```
+$ RAILS_VERSION=6.0.3 ruby app.rb
+
+...
+
+Error:
+BugTest#test_eager_load:
+NoMethodError: undefined method `relation' for #<Arel::Nodes::BindParam:0x00007fa7bdd653f0>
+    app.rb:91:in `test_eager_load'
+```
